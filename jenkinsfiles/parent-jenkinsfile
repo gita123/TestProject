@@ -1,0 +1,5 @@
+#!/usr/bin/env groovy
+ctsParentDeploy_001 {
+  prjName = "pbs"
+  slackUrl = "https://hooks.slack.com/services/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"
+}

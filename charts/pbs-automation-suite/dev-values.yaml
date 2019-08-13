@@ -1,0 +1,20 @@
+global:
+  targetAccount: np
+  targetNamespace: dev
+  s3Bucket: ho.ipt.ops.testresults
+
+  pbs:
+    sponsor:
+      portal: https://amber-dev-e-spon-pbs-kops10.service.np.iptho.co.uk/gui-sponsor-jsf/SponsorHome.faces
+
+    sms:
+      portal: https://amber-dev-e-spon-pbs-kops10.service.np.iptho.co.uk/gui-sms-jsf/home/SMS-003-Home.faces
+
+    coscas:
+      portal: https://coscas-dev-i-spon-pbs-kops1.service.np.iptho.co.uk/gui-coscheck-jsf/coscheck/CC-002-Home.faces
+
+    metastorm:
+      portal: https://metastorm-dev-i-spon-pbs.service.np.iptho.co.uk/metastorm/
+
+    metastormAPI:
+      endpoint: https://metastorm-dev-i-spon-pbs.service.np.iptho.co.uk/BPMServices/BPMService.asmx

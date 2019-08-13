@@ -1,0 +1,129 @@
+{{- define "test-batches" -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-{{lower .batchName}}
+  labels:
+    name: {{.Chart.Name}}
+    chart: {{.Chart.Name}}-{{.Chart.Version}}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{.Chart.Name}}
+    costcentre: PBS
+spec:
+  restartPolicy: OnFailure
+  initContainers:
+  - name: vault-side-kick
+    image: quay.io/ukhomeofficedigital/vault-sidekick:v0.3.3
+    command: ["/home/vault/script/vault-script.sh"]
+    env:
+    - name: VAULT_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: eue-vault-token
+          key: vault-token
+    - name: VAULT_TOKEN_OPS
+      valueFrom:
+        secretKeyRef:
+          name: eue-vault-token-ops
+          key: vault-token
+    volumeMounts:
+      - name: secrets
+        mountPath: /etc/secrets
+      - name: vsk-script
+        mountPath: /home/vault/script
+  containers:
+  - name: {{.Chart.Name}}
+    image: {{.Values.ecr.registryAddress}}/{{.Values.ecr.regPath}}/{{.Chart.Name}}:{{.Chart.AppVersion}}
+    env:
+    - name: CHART_NAME
+      value: {{.Chart.Name}}
+    - name: TOTAL_BATCHES
+      value: {{.Values.global.batches.total | quote}}
+    - name: BATCH_NUMBER
+      value: {{.batchNumber | quote}}
+    - name: BATCH_NAME
+      value: {{.batchName}}
+    - name: BATCH_CONFIGMAP_NAME
+      value: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-batch
+    - name: S3Bucket
+      value: {{.Values.global.s3Bucket}}
+    - name: TARGET_NAMESPACE
+      value: {{.Values.global.targetNamespace}}
+    - name: TEST_TAGS
+      value: {{.Values.global.testTags | quote}}
+    - name: JENKINS_URL
+      value: {{.Values.global.jenkinsUrl}}
+    - name: JENKINS_JOB_NAME
+      value: {{.Values.global.jenkinsJobName}}
+    - name: JENKINS_UMBRELLA_VERSION
+      value: {{.Values.global.jenkinsUmbrellaVersion}}
+    - name: JENKINS_ROLLBACK_JOB_NAME
+      value: {{.Values.global.jenkinsRollbackJobName}}
+    - name: JENKINS_E2E_TEST_TAGS
+      value: {{.Values.global.jenkinsE2ETestTags}}
+    - name: JENKINS_E2E_CHART_NAME
+      value: {{.Values.global.jenkinsE2EChartName}}
+    - name: JENKINS_E2E_CHART_VERSION
+      value: {{.Values.global.jenkinsE2EChartVersion}}
+    - name: SHOULD_PROMOTE
+      value: {{.Values.global.shouldPromote | quote}}
+    - name: HELM_CHART_TEAM
+      value: {{.Values.global.helmChartTeam | quote}}
+    - name: OUTBOUND_PROXY_HOST
+      value: {{.Values.global.proxy.outbound.host}}
+    - name: OUTBOUND_PROXY_PORT
+      value: {{.Values.global.proxy.outbound.port | quote}} 
+    - name: LOCAL_PROXY_HOST
+      value: {{.Values.global.proxy.local.host}}
+    - name: LOCAL_PROXY_PORT
+      value: {{.Values.global.proxy.local.port | quote}} 
+    - name: TIMESTAMP
+      value: {{.Values.global.timestamp}}
+    - name: CONFLUENCE_ANCHOR_ID
+      value: {{.Values.global.confluence_anchor_id | quote}}
+    - name: CONFLUENCE_SPACE_KEY
+      value: {{.Values.global.confluence_space_key}}
+    - name: CONFLUENCE_USER
+      value: {{.Values.global.confluence_user}}
+    - name: CONFLUENCE_VAULT_PATH
+      value: {{.Values.global.confluence_vault_path}}
+    - name: PIPELINE_PATH
+      value: {{.Values.global.pipeline_path}}
+    - name: PRODUCT
+      value: {{.Values.global.product}}
+    - name: DOMAIN
+      value: {{.Values.global.domain}}
+    resources:
+{{toYaml .Values.resources | indent 6}}
+    volumeMounts:
+    - name: dshm
+      mountPath: /dev/shm
+    - name: properties
+      mountPath: /app/Function/src/test/resources/properties
+    - name: secrets
+      mountPath: /app/Function/src/test/resources/credentials
+    - name: kubeconfig
+      mountPath: /home/javauser/.kube
+  volumes:
+  - name: dshm
+    emptyDir:
+      medium: Memory
+      sizeLimit: {{.Values.resources.sharedMem | quote}}
+  - name: properties
+    configMap:
+      name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-properties
+      defaultMode: 0555
+  - name: vsk-script
+    configMap:
+      name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-vsk
+      defaultMode: 0555
+  - name: kubeconfig
+    configMap:
+      name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-kubeconfig
+      defaultMode: 0555
+  - name: secrets
+    emptyDir: {}
+---
+{{- end -}}

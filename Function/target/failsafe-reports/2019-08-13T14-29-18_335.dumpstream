@@ -1,0 +1,78 @@
+# Created at 2019-08-13T14:29:18.336
+WARNING: An illegal reflective access operation has occurred
+
+# Created at 2019-08-13T14:29:18.336
+WARNING: Illegal reflective access by com.google.inject.internal.cglib.core.$ReflectUtils$1 (file:/Users/geethaganabathula/.m2/repository/com/google/inject/guice/4.2.2/guice-4.2.2.jar) to method java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain)
+
+# Created at 2019-08-13T14:29:18.337
+WARNING: Please consider reporting this to the maintainers of com.google.inject.internal.cglib.core.$ReflectUtils$1
+
+# Created at 2019-08-13T14:29:18.337
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+
+# Created at 2019-08-13T14:29:18.337
+WARNING: All illegal access operations will be denied in a future release
+
+# Created at 2019-08-13T14:30:39.824
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.824
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.825
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.825
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.826
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.826
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.827
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.827
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.828
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.828
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.828
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.828
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.829
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.829
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.829
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.829
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.830
+2019-08-13 14:30:39.823 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.830
+2019-08-13 14:30:39.824 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.830
+2019-08-13 14:30:39.824 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.831
+2019-08-13 14:30:39.824 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+
+# Created at 2019-08-13T14:30:39.831
+2019-08-13 14:30:39.824 java[22881:352987] pid(22881)/euid(501) is calling TIS/TSM in non-main thread environment, ERROR : This is NOT allowed. Please call TIS/TSM in main thread!!!
+

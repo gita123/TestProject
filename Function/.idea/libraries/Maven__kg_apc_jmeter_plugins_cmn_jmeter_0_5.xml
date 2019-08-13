@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: kg.apc:jmeter-plugins-cmn-jmeter:0.5">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/kg/apc/jmeter-plugins-cmn-jmeter/0.5/jmeter-plugins-cmn-jmeter-0.5.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/kg/apc/jmeter-plugins-cmn-jmeter/0.5/jmeter-plugins-cmn-jmeter-0.5-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/kg/apc/jmeter-plugins-cmn-jmeter/0.5/jmeter-plugins-cmn-jmeter-0.5-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

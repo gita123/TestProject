@@ -1,0 +1,427 @@
+#!groovy���
+
+import org.eue.core.SemVer
+import groovy.json.JsonOutput
+
+def domain = "pbs" // examples: eue, ipt, cust, com
+def curlPrefix = "curl -X POST https://hooks.slack.com/services/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 -d "
+def namespace = (params.NAMESPACE ?: "ttzo").toString()
+def chart = (params.CHART).toString()
+
+def testTags = (params.TEST_TAGS).toString()
+def autoPromote = (params.AUTO_PROMOTE).toString()
+def branch = (params.BRANCH).toString()
+def sanitisedBranch = branch.replace('/', "-").toLowerCase()
+
+// Testframework uses non-namespace values file, others should default to namespace
+def target = (params.TARGET ?: "asit").toString()
+def cluster = (params.CLUSTER ?: "ops-kops1").toString()
+def slackUserScript = "git log -1 --pretty=format:'%aE' | sed -e 's/@.*//'"
+def eueCTFNotifySlack = new eueCTFNotifySlack()
+def chartReleaseName = "${chart}-${target}-${sanitisedBranch}"
+
+// ChartMuseum
+def mURL = "https://chartmuseum-dtzo-i-pla-muse-kops1.service.ops.iptho.co.uk"
+
+// New values
+def uiTestCount = (params.UITESTS ?: 0).toInteger()
+def apiTestCount = (params.APITESTS ?: 0).toInteger()
+def perfTestCount = (params.PERFTESTS ?: 0).toInteger()
+
+// App Version
+def appVersion = (params.APPVERSION).toString()
+
+// Build numbers
+def jobName = env.JOB_NAME
+def buildID = env.BUILD_ID
+
+// Methods: <- maybe move into utilities module
+
+def update_release_notes(chart, version, domain) {
+    sh "git tag -a ${version} -m 'CTS Version ${version}'"
+    sh '''
+        set +x
+        lasttag=""
+        for tag in `git tag -l`
+        do
+          echo "${tag}:"
+          git --no-pager log --pretty=format:" %h: %s" "${lasttag}${tag}"
+          echo
+          echo
+          lasttag="${tag}.."
+        done > _release_notes.yaml
+     '''
+}
+
+def set_version(appVersion, chart, domain) {
+    def new_release = false
+    dir("latest") {
+        // Update the chart museum repo
+        sh "helm repo update"
+        cm_version = sh(returnStdout: true, script: 'helm search latest/${chart} | awk \'{print $2}\' | awk \'NR==2\'').trim()?:"0.0.0"
+        echo "The latest version is ${cm_version}"
+    }
+
+    dir("charts/${chart}") {
+        // Update the chart dockerTag and bump version
+        def Map values = readYaml file: "Chart.yaml"
+
+        if (appVersion != null) {
+            // Update the ap venison inside the yaml obj
+            values['appVersion'] = appVersion
+        }
+
+        repo_version = values['version']
+
+        // Create SemVer Object of repo Version with appended -latest tag
+        repo_version_sm = new SemVer(repo_version.concat('-latest'))
+
+        // Create SemVer Object of chart museum Version with appended -latest tag
+        cm_version_sm = new SemVer(cm_version.concat('-latest'))
+
+        if (repo_version_sm.isNewer(cm_version_sm)) {
+            // If the the current version is greater than the latest set the version with current version
+            int repo_major = repo_version.tokenize('.')[0].toInteger()
+            int repo_minor = repo_version.tokenize('.')[1].toInteger()
+
+            int cm_major = cm_version.tokenize('.')[0].toInteger()
+            int cm_minor = cm_version.tokenize('.')[1].toInteger()
+
+            if (repo_major > cm_major || repo_minor > cm_minor) {
+                echo " -------- New release found -------- "
+                new_release = true
+                version = "${repo_major}.${repo_minor}.0"
+            } else {
+                version = repo_version
+            }
+
+        } else {
+            // If not greater than then increment the latest version
+            int major = cm_version.tokenize('.')[0].toInteger()
+            int minor = cm_version.tokenize('.')[1].toInteger()
+            int patch = cm_version.tokenize('.')[2].toInteger()
+            patch++
+
+            version = "${major}.${minor}.${patch}"
+        }
+
+        // Update the file
+        values['version'] = version
+
+        // Delete old file and create new file with new data
+        sh(script: "rm Chart.yaml")
+        writeYaml file: "Chart.yaml", data: values
+
+        if (new_release) {
+            echo " -------- Update release notes -------- "
+            update_release_notes(chart, version, domain)
+            slack_channel = "https://hooks.slack.com/services/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"
+            post_slack (slack_channel, version)
+        }
+    }
+    return version
+}
+
+def get_jira_metadata(jiraSet) {
+    // Backup the default vault token env var
+    env.VAULT_TOKEN_OLD = env.VAULT_TOKEN
+
+    // Get a new VAULT_TOKEN
+    env.VAULT_TOKEN = sh(returnStdout: true, script: "kubectl -n dtzo get secret eue-vault-token -o yaml | \
+                                grep 'vault-token'| awk '{ print \$2 }' | head -n1 | base64 --decode").trim()
+
+    def jiraPassword = sh (returnStdout: true, script: "vault read -field=password secret/ops-dtzo/EUE/service_jira").trim()
+
+    // Stop Jenkins spitting out secrets it shouldn't be!
+    writeFile file: '/tmp/jira-credentials', text: "eue.jenkins:${jiraPassword}"              
+
+    jiraSummaries = []        
+     
+    jiraSet.each {
+        echo "Processing ${it}..."
+        String key = "<https://jira.ipttools.info/browse/${it}|${it}>"
+
+        response = sh (returnStdout: true, script: 'no_proxy= curl -s -X GET \
+            -H "Content-Type: application/json" \
+            -H "Authorization:  Basic $(cat /tmp/jira-credentials | base64)" \
+            https://jira.ipttools.info/rest/api/2/issue/'+it+'?fields=summary > /tmp/response.json').trim()                        
+        
+        summary = readJSON (file: "/tmp/response.json").fields.summary.trim()
+        jiraSummaries << "*${key}* - ${summary.toString()}"
+    }
+
+    // Reset back to default vault token
+    env.VAULT_TOKEN = env.VAULT_TOKEN_OLD
+
+    return jiraSummaries
+}
+
+def post_slack(String slack_channel, String newVersion) {
+
+    /*
+    A bit of a pain. First we replace the first match to ':' on each line with ';;;' (this should be the key for each release).
+    Then, we replace the remaining colons with nothing (remove). After this we replace the ;;; on each line with a colon.
+    All of this just to remove colons from strings in yaml. Sigh.
+    */                          
+    sh "sed -E -i.bak 's/:/;;;/1; s/://g; s/;;;/:/g' _release_notes.yaml"
+
+    /* Application special, get rid of [NG], [NG|FG|GG] type strings in commits as they're bad YAML.
+    Also strip out @ characters and any lines containing merge branch or pull request.
+    */
+    sh "sed -E -i.bak 's/(\\[.+\\])( )?//g; s/@//g; /[mM]erge ([Bb]ranch|[Pp]ull)/d' _release_notes.yaml"
+    sh "rm -f _release_notes.yaml.bak"
+
+
+    //message = $(cat _release_notes.yaml )
+    def message = readYaml file: "_release_notes.yaml"
+
+    // Find all the entries that match the new version
+    def changedYaml = message.findAll { rn ->
+        ((rn.key == newVersion) && rn.value)                              
+    }
+
+    echo changedYaml.toString()
+
+    // Declare a Sorted Set
+    def jiraSet = [] as SortedSet
+
+    // Iterate through each version header and then each commit within that to extract JIRA tickets                                
+    changedYaml.each { change ->
+        change.value.each {
+            jiraSet.addAll("${it.value}".findAll(/[A-Za-z]{2,10}-\d{4,6}/))
+        }
+    }
+
+    // Get a list of JIRA summaries
+    def changelogMessages = get_jira_metadata(jiraSet)
+
+    // Max number of lines before slack will truncate
+    int changelogBatchSize = 60
+
+    // Split list into batches of $changelogBatchSize (sublists)
+    changelogMessages.collate(changelogBatchSize).eachWithIndex { item, index ->
+        def payload = [                                                    
+                    username: "Core Jenkins",
+                    //icon_url: jenkinsIcon,                        
+                    attachments: [[ 
+                                    "fallback": "JIRA tickets delivered for CTS release ${newVersion}.",
+                                    "author_name": "JIRA Deployment Notes",
+                                    "color": "${item.size() > 0 ? "good" : "warning" }",                                                                           
+                                    "text": "${item.size() > 0 ? item.join('\n') : "No JIRA tickets found!" }",
+                                    "title": "Tickets delivered for CTS release ${newVersion} ${index > 0 ? "(Cont'd)":""}"
+                                ]]
+                    ]
+                    
+        //convert maps/arrays to json formatted string
+        def json = JsonOutput.toJson(payload)
+        //if you need pretty print (multiline) json
+        json = JsonOutput.prettyPrint(json)
+
+        //put string into the file:
+        writeFile(file:'/tmp/payload.json', text: json)
+        sh "cat /tmp/payload.json"
+        sh "curl -X POST -H 'Content-type: application/json' --data @/tmp/payload.json ${slack_channel}"
+    }                                  
+}    
+
+def set_values(uiTestCount, apiTestCount, perfTestCount, chart) {
+    dir("charts/${chart}") {
+        // Set total tests total
+        def totalTests = uiTestCount + apiTestCount + perfTestCount
+
+        // Create yaml object and update the values.yaml
+        def Map chartValues = readYaml file: "values.yaml"
+
+        chartValues["global"]["batches"]["suites"]["TestSuiteUi"] = uiTestCount
+        chartValues["global"]["batches"]["suites"]["TestSuiteApi"] = apiTestCount
+        chartValues["global"]["batches"]["suites"]["TestSuitePerf"] = perfTestCount
+        chartValues["global"]["batches"]["total"] = totalTests
+
+        // Delete old file and create new file with new data
+        sh(script: "rm values.yaml")
+        writeYaml file: "values.yaml", data: chartValues
+
+        return totalTests
+    }
+}
+
+def package_up(domain, chart, version, jobName, buildID) {
+    dir("charts/${chart}") {
+        // Push back to repo
+        sh "git add ."
+        sh "git commit -m '${jobName}:${buildID}' || :"
+        sh "git push origin ${branch} || :"
+        sh "git push --tags"
+
+        // Package it up
+        sh "helm init --client-only"
+        sh "mkdir -p ../../${domain}/${chart}/"
+        sh "helm package . -d ../../${domain}/${chart}/ --version ${version}"
+    }
+}
+
+pipeline {
+    agent { label 'basic_slave' }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+    // Start of Stages
+    stages {
+        stage("Update Chart..") {
+            steps {
+                script {
+                    //setup git user
+                    sh "git config user.name '${domain} Jenkins'"
+                    sh "git checkout ${branch}"
+                    // Checkout correct branch
+                    sh "git config user.email '${domain}-jenkins@core.xyz'"
+                    // Add the chart museum repo
+                    sh "helm init --client-only"
+                    sh "helm repo add latest ${mURL}/${domain}/${chart}"
+
+                    echo " -------- Step: Update version -------- "
+                    version = set_version(appVersion, chart, domain)
+                    echo "The new version is ${version}"
+
+                    // Set values file with test values
+                    echo " ------ Step: Update values file ------ "
+                    set_values(uiTestCount, apiTestCount, perfTestCount, chart)
+
+                    // Package up
+                    echo " ------ Step: Packaging chart up ------ "
+                    package_up(domain, chart, version, jobName, buildID)
+
+                    try {
+                        echo " ----- Step: Push to Chart Museum ----- "
+                        dir("${domain}/${chart}") {
+                            status_code = sh(script: "curl -s -o /dev/null -w '%{http_code}' --data-binary '@${chart}-${version}.tgz' ${mURL}/api/${domain}/${chart}/charts", returnStdout: true).trim()
+                            echo "The status code of the curl is ${status_code}"
+                        }
+                        // only accept 200 or 201 else retry
+                        while (status_code == 406) {
+                            retry(3) {
+
+                                echo " -------- Retry: Update version -------- "
+                                version = set_version(appVersion, chart, domain)
+                                echo "The new version is ${version}"
+
+                                echo " ------ Retry: Packaging chart up ------ "
+                                package_up(domain, chart, version, jobName, buildID)
+
+                                echo " ----- Retry: Push to Chart Museum ----- "
+                                dir("${domain}/${chart}") {
+                                    status_code = sh(script: "curl -s -o /dev/null -w '%{http_code}' --data-binary '@${chart}-${version}.tgz' ${mURL}/api/${domain}/${chart}/charts", returnStdout: true).trim()
+                                    echo "The retry status code of the curl is ${status_code}"
+                                }
+
+                            }
+                        }
+                    } catch (error) {
+                        echo "Unable to push chart to Chart Museum!"
+                        slackUser = sh(script: slackUserScript, returnStdout: true)
+                        eueCTFNotifySlack.postToSlack(false, slackUser, curlPrefix, branch)
+                        sh "exit 1"
+                    }
+                }
+            }
+        }
+
+        stage("Deploy chart") {
+            steps {
+                script {
+
+                    checkout scm
+                    sh "git checkout ${branch}"
+
+                    sh "kubectl config use-context ${cluster}"
+                    sh "helm init --client-only"
+
+                    // Read cert and key
+                    sh "vault read -field crt secret/jenkins/tiller > /var/jenkins_home/.helm/cert.pem"
+                    sh "vault read -field key secret/jenkins/tiller > /var/jenkins_home/.helm/key.pem"
+
+                    try {
+                        // If there is an old release it must be deleted before new install/upgrade
+                        echo " ------ Step: Delete old release ------ "
+                        release = sh(returnStdout: true, script: "helm list --tiller-namespace tiller --tls --namespace ${namespace} ${chartReleaseName} -q ")
+
+                        echo "${release}"
+
+                        if (release) {
+                            // Try delete..
+                            sh "helm delete ${chartReleaseName} --purge --tiller-namespace tiller --tls"
+                            podCount = sh(returnStdout: true, script: "kubectl get pod --namespace ${namespace} | grep \"${chartReleaseName}-branch\" | wc -l")
+                            println("Pod count is ${podCount}")
+                            println("Waiting for release to be deleted.")
+                            sleep(time: 15, unit: "SECONDS")
+                            sleepCount = 1
+                            while (podCount.toInteger() > 0) {
+                                podCount = sh(returnStdout: true, script: "kubectl get pod --namespace ${namespace} | grep \"${chartReleaseName}-branch\" | wc -l")
+                                println("Pod count is ${podCount}")
+                                sleep(time: 15, unit: "SECONDS")
+                                sleepCount = sleepCount + 1
+                                if (sleepCount > 20) {
+                                    println("Unable to cleardown the release after ${sleepCount} wait cycles.")
+                                    sh "exit 1"
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        println "Did not delete the previous failed release. Exception: ${e}"
+                        sh "exit 1"
+                    }
+
+                    // Get the timestamp
+                    def timestamp = sh(returnStdout: true, script: "date +%Y-%m-%d_%H-%M-%S").trim()
+
+                    // Parse the ops-kops1 kube token
+                    def kubeYaml = readYaml file: "/var/jenkins_home/.kube/config"
+                    def kubeToken = kubeYaml.users.find { it.name.equalsIgnoreCase("ops-kops1") }.user.token.toString()
+
+                    // Default value
+                    def valuesFileExists = true
+                    try {
+                        sh "ls charts/${chart}/${target}-values.yaml"
+                    } catch (Exception e) {
+                        valuesFileExists = false
+                    }
+                    println(valuesFileExists)
+
+                    echo " -------- Step: Deploy release -------- "
+
+                    try {
+                        if (valuesFileExists) {
+                            sh "helm upgrade --install ${chartReleaseName} charts/${chart} --tiller-namespace tiller \
+                        --tls \
+                        --namespace ${namespace} \
+                        -f charts/${chart}/${target}-values.yaml \
+                        --set global.testTags=\"${testTags}\",global.branch=\"${sanitisedBranch}-branch\",global.timestamp=\"${timestamp}\",global.kubeOpsToken=\"${kubeToken}\" \
+                        --set global.jenkinsUmbrellaVersion=${version} \
+                        --force \
+                        --wait --timeout 300"
+                        } else {
+                            println "*** NO VALUE FILE PROVIDED ***"
+                            sh "helm upgrade --install ${chartReleaseName} charts/${chart} --tiller-namespace tiller \
+                        --tls \
+                        --namespace ${namespace} \
+                        --set global.testTags=\"${testTags}\",global.branch=\"${sanitisedBranch}-branch\",global.timestamp=\"${timestamp}\",global.kubeOpsToken=\"${kubeToken}\" \
+                        --set global.jenkinsUmbrellaVersion=${version} \
+                        --force \
+                        --wait --timeout 300"
+                        }
+                    } catch (Exception e) {
+                        slackUser = sh(script: slackUserScript, returnStdout: true)
+                        eueCTFNotifySlack.postToSlack(false, slackUser, curlPrefix, branch)
+                        sh "exit 1"
+                    }
+                    slackUser = sh(script: slackUserScript, returnStdout: true)
+                    eueCTFNotifySlack.postToSlack(true, slackUser, curlPrefix, branch)
+
+
+                }
+            }
+        }
+    }
+} // End of pipeline
+

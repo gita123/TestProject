@@ -1,0 +1,65 @@
+resources:
+  requests:
+    cpu: 1000m
+    memory: 4096Mi
+  limits:
+    cpu: 1000m
+    memory: 4096Mi
+  sharedMem: 512Mi
+ecr:
+  registryAddress: 113355358853.dkr.ecr.eu-west-1.amazonaws.com
+  regPath: spon/pbs
+global:
+  batches:
+    suites:
+      TestSuiteUi: 5
+      TestSuiteApi: 1
+      TestSuitePerf: 0
+    total: 6
+  browser: chrome
+  vaultPath: ''
+  s3Bucket: ho.ipt.np.testresults
+  targetAccount: np
+  targetNamespace: asit
+  jenkinsUrl: https://cts-jenkins-dtzo-kops1.service.ops.iptho.co.uk
+  jenkinsJobName: ''
+  jenkinsUmbrellaVersion: default
+  jenkinsRollbackJobName: ''
+  jenkinsE2ETestTags: ''
+  jenkinsE2EChartName: default
+  jenkinsE2EChartVersion: latest
+  shouldPromote: 'false'
+  helmChartTeam: pbs
+  product: pbs
+  domain: PBS
+  confluence_anchor_id: '120738569'
+  confluence_user: eue.jenkins
+  confluence_space_key: PBS
+  confluence_vault_path: secret/ops-dtzo/EUE/service_jira
+  pipeline_path: ssh://git@bitbucket.ipttools.info/cts/pipeline.git
+  proxy:
+    local:
+      host: proxy.local
+      port: 8080
+    outbound:
+      host: outboundproxy-ext-inbc-prp1.service.np.iptho.co.uk
+      port: 3128
+  endpoints:
+    vault: https://vault-elb.service.np.iptho.co.uk:443
+    vault_ops: https://vault-elb.service.ops.iptho.co.uk:443
+  uri:
+    eue_app_api:
+      endpoint: https://eue-applications-api-eueeasit1-kube10.service.np.iptho.co.uk/
+      healthcheck: eue-applications-api/healthcheck
+    communication_tool:
+      endpoint: https://eue-mobileq-ttzo-kops1.service.ops.iptho.co.uk
+  jmeter:
+    endpoint: www.google.com
+    location: src/test/resources/jmeter/jmx/
+    home: src/test/resources/jmeter/
+    reports: target/site/reports/jmeter/
+  vault:
+    browserstak:
+      secret: secret/np-eueappidev1/EUE/credentials/browserstackauth
+    jenkins:
+      secret: secret/ops-ttzo/EUE/eue_jenkins_user

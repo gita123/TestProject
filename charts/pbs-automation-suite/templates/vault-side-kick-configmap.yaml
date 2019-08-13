@@ -1,0 +1,32 @@
+kind: ConfigMap
+metadata:
+  name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-vsk
+  labels:
+    name: {{.Chart.Name}}
+    chart: {{.Chart.Name}}-{{.Chart.Version}}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{.Chart.Name}}
+    costcentre: PBS
+apiVersion: v1
+data:
+  vault-script.sh: |-
+    #!/bin/bash
+
+    AUTH="/tmp/auth.yaml"
+    echo 'method: token' > ${AUTH}
+    echo "token: ${VAULT_TOKEN}" >> ${AUTH}
+
+    /vault-sidekick -output=/etc/secrets -auth=${AUTH} \
+    -vault={{.Values.global.endpoints.vault}} -one-shot \
+    -cn=secret:{{.Values.global.vault.browserstak.secret}}:file=browserstackauth.properties,fmt=ini
+
+    # Set up Jenkins Credentials
+    AUTH_JENKINS="/tmp/auth-jenkins.yaml"
+    echo 'method: token' > ${AUTH_JENKINS}
+    echo "token: ${VAULT_TOKEN_OPS}" >> ${AUTH_JENKINS}
+
+    # Jenkins credentials
+    /vault-sidekick -output=/etc/secrets -auth=${AUTH_JENKINS} \
+    -vault={{.Values.global.endpoints.vault_ops}} -one-shot \
+    -cn=secret:{{.Values.global.vault.jenkins.secret}}:file=jenkinsauth.yaml,fmt=yaml

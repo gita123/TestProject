@@ -1,0 +1,9 @@
+global:
+  targetAccount: np
+  targetNamespace: feat
+  s3Bucket: ho.ipt.ops.testresults
+
+  uri:
+    eue_app_api:
+      endpoint: https://eue-applications-api-feat-e-cust-auk2-kube10.service.np.iptho.co.uk
+      healthcheck: eue-applications-api/healthcheck

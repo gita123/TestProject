@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>net.serenitybdd.starter</groupId>
+    <artifactId>pbs-automation-suite</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>PBS Automation suite</name>
+
+    <properties>
+        <encoding>UTF-8</encoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!--commenting below version to check IE issue-->
+        <!--<serenity.version>2.0.9</serenity.version>-->
+        <!--<serenity-cucumber.version>1.9.18</serenity-cucumber.version>-->
+        <serenity.version>2.0.48</serenity.version>
+        <serenity-cucumber.version>1.9.37</serenity-cucumber.version>
+        <slf4j-simple.version>1.7.25</slf4j-simple.version>
+        <maven-failsafe-plugin.version>2.22.0</maven-failsafe-plugin.version>
+        <maven-surefire-plugin.version>2.22.0</maven-surefire-plugin.version>
+        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+        <surefire-junit.version>2.22.0</surefire-junit.version>
+
+        <junit.version>4.12</junit.version>
+        <assertj-core.version>3.9.1</assertj-core.version>
+        <hamcrest-all.version>1.3</hamcrest-all.version>
+        <log4j.version>2.11.0</log4j.version>
+
+        <ApacheJMeter.version>3.3</ApacheJMeter.version>
+        <kg.apc.cmdrunner.version>2.2.1</kg.apc.cmdrunner.version>
+        <kg.apc.jmeter.cmd.version>2.1</kg.apc.jmeter.cmd.version>
+        <kg.apc.jmeter.cmn.version>0.5</kg.apc.jmeter.cmn.version>
+        <kg.apc.jmeter.synth.version>2.1</kg.apc.jmeter.synth.version>
+        <kg.apc.jmeter.func.version>2.0</kg.apc.jmeter.func.version>
+        <kg.apc.jmeterplugins.version>1.4.0</kg.apc.jmeterplugins.version>
+
+        <cucumber-jvm-parallel-plugin.version>5.0.0</cucumber-jvm-parallel-plugin.version>
+        <!--<parallel.tests>10</parallel.tests>-->
+        <tags></tags>
+        <jvm-min-mem>128m</jvm-min-mem>
+        <jvm-max-mem>256m</jvm-max-mem>
+        <jvm-min-perm>128m</jvm-min-perm>
+    </properties>
+
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>bintray</name>
+            <url>http://jcenter.bintray.com</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>bintray-plugins</name>
+            <url>http://jcenter.bintray.com</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit4</artifactId>
+            <version>${surefire-junit.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit47</artifactId>
+            <version>${surefire-junit.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j-simple.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.serenity-bdd</groupId>
+            <artifactId>serenity-core</artifactId>
+            <version>${serenity.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.serenity-bdd</groupId>
+            <artifactId>serenity-junit</artifactId>
+            <version>${serenity.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.serenity-bdd</groupId>
+            <artifactId>serenity-rest-assured</artifactId>
+            <version>${serenity.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.serenity-bdd</groupId>
+            <artifactId>serenity-cucumber</artifactId>
+            <version>${serenity-cucumber.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj-core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-all</artifactId>
+            <version>${hamcrest-all.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <!-- JMETER Dependencies -->
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_core</artifactId>
+            <version>${ApacheJMeter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_components</artifactId>
+            <version>${ApacheJMeter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_http</artifactId>
+            <version>${ApacheJMeter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_java</artifactId>
+            <version>${ApacheJMeter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_config</artifactId>
+            <version>${ApacheJMeter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>cmdrunner</artifactId>
+            <version>${kg.apc.cmdrunner.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-cmd</artifactId>
+            <version>${kg.apc.jmeter.cmd.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-cmn-jmeter</artifactId>
+            <version>${kg.apc.jmeter.cmn.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-synthesis</artifactId>
+            <version>${kg.apc.jmeter.synth.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-functions</artifactId>
+            <version>${kg.apc.jmeter.func.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins</artifactId>
+            <version>${kg.apc.jmeterplugins.version}</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-extras-libs</artifactId>
+            <version>${kg.apc.jmeterplugins.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-standard</artifactId>
+            <version>${kg.apc.jmeterplugins.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>kg.apc</groupId>
+            <artifactId>jmeter-plugins-extras</artifactId>
+            <version>${kg.apc.jmeterplugins.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>0.15</version>
+        </dependency>
+        <dependency>
+            <groupId>com.browserstack</groupId>
+            <artifactId>browserstack-local-java</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+        <!-- JMETER Dependencies -->
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                    <argLine>-Xms${jvm-min-mem} -Xmx${jvm-max-mem} -XX:MaxMetaspaceSize=${jvm-min-perm} -Djavax.net.ssl.trustStore=/home/javauser/.m2/cacerts -Djavax.net.ssl.trustStoreType=JKS -Djavax.net.ssl.trustStorePassword=changeit</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+                <configuration>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                    <includes>
+                        <include>**/TestSuite*.class</include> <!--Comments>Please update to point to correct Runner Class(es)<-->
+                    </includes>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                    <argLine>-Xms${jvm-min-mem} -Xmx${jvm-max-mem} -XX:MaxMetaspaceSize=${jvm-min-perm} -Djavax.net.ssl.trustStore=/home/javauser/.m2/cacerts -Djavax.net.ssl.trustStoreType=JKS -Djavax.net.ssl.trustStorePassword=changeit</argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>net.serenity-bdd.maven.plugins</groupId>
+                <artifactId>serenity-maven-plugin</artifactId>
+                <version>${serenity.version}</version>
+                <configuration>
+                    <tags>${tags}</tags>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>serenity-reports</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>cucumber_parallel_plugin</id>
+            <build>
+                <plugins>
+                    <!-- Cucumber JVM Parallel Plugin -->
+                    <plugin>
+                        <groupId>com.github.temyers</groupId>
+                        <artifactId>cucumber-jvm-parallel-plugin</artifactId>
+                        <version>${cucumber-jvm-parallel-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>generateRunners</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>generateRunners</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Mandatory -->
+                                    <!-- List of package names to scan for glue code. -->
+                                    <glue>
+                                        <package>uk.gov.ho.domain.component.ui.steps</package>
+                                        <package>uk.gov.ho.domain.component.api.steps</package>
+                                        <package>uk.gov.ho.domain.component.perf.steps</package>
+                                    </glue>
+                                    <!-- One of [SCENARIO, FEATURE]. SCENARIO generates one runner per scenario.  FEATURE generates a runner per feature. -->
+                                    <parallelScheme>SCENARIO</parallelScheme>
+                                    <customVmTemplate>src/test/resources/cucumber-serenity-runner.vm</customVmTemplate>
+                                    <!-- Optional -->
+                                    <!-- CucumberOptions.strict property -->
+                                    <strict>false</strict>
+                                    <!-- CucumberOptions.monochrome property -->
+                                    <monochrome>true</monochrome>
+                                    <!-- The naming scheme to use for the generated test classes.  One of ['simple', 'feature-title', 'pattern'] -->
+                                    <namingScheme>pattern</namingScheme>
+                                    <!-- The class naming pattern to use.  Only required/used if naming scheme is 'pattern'.-->
+                                    <namingPattern>Parallel{3c}IT</namingPattern>
+                                    <cucumberOutputDir>target/cucumber-parallel</cucumberOutputDir>
+                                    <!-- Optional -->
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Cucumber JVM Parallel Plugin -->
+
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

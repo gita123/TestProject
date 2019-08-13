@@ -1,0 +1,5 @@
+#!/usr/bin/env groovy
+eueCommonDockerBuildECR {
+  regPath = "spon/pbs"
+  slackUrl = "https://hooks.slack.com/services/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"
+}

@@ -1,0 +1,23 @@
+{{- $global := . -}}
+kind: ConfigMap
+metadata:
+  name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-batch
+  labels:
+    name: {{.Chart.Name}}
+    chart: {{.Chart.Name}}-{{.Chart.Version}}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{.Chart.Name}}
+    costcentre: PBS
+    TotalBatchCount: {{.Values.global.batches.total | quote}}
+    TestSuiteUiCount: {{.Values.global.batches.suites.TestSuiteUi | quote}}
+    TestSuiteApiCount: {{.Values.global.batches.suites.TestSuiteApi | quote}}
+    TestSuitePerfCount: {{.Values.global.batches.suites.TestSuitePerf | quote}}
+apiVersion: v1
+data:
+  LastUpdatedBy: ""
+  BatchesCompleted: "0"
+  {{- range $batchNumber, $e := until (int .Values.global.batches.total) }}
+    {{- $batchNumber := add $batchNumber 1 -}}
+    {{ printf "\n  Parallel%03dIT" $batchNumber }}: not-completed
+  {{- end }}

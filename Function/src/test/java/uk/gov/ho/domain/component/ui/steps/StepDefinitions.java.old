@@ -1,0 +1,33 @@
+package uk.gov.ho.domain.component.ui.steps;
+
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
+import net.thucydides.core.annotations.Steps;
+import uk.gov.ho.domain.component.ui.stepLib.UiStepLib;
+
+public class StepDefinitions {
+
+    @Steps
+    UiStepLib uiStepLib;
+
+    @Given("^I open Gov.uk home page$")
+    public void iOpenGoogle() {
+        uiStepLib.navigateToGovUkHomePage();
+    }
+
+    @When("^I search for \"([^\"]*)\"$")
+    public void iSearchFor(String term) {
+        uiStepLib.searchForTerm(term);
+    }
+
+    @Then("^I should find \"([^\"]*)\" related results$")
+    public void iShouldFind(String expectedResultTerm) {
+        uiStepLib.verifySearchTermInResult(expectedResultTerm);
+    }
+
+    @Then("I am on search result page")
+    public void iAmOnSearchResultPage(){
+        uiStepLib.verifyUserIsOnSearchResultPage();
+    }
+}

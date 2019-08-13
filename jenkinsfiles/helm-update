@@ -1,0 +1,105 @@
+#!/usr/bin/env groovy
+/*
+params:
+  chart: chart to Update
+  appVersion: the appversion to update with which will become the dockertag used in the chart
+*/
+
+def domain = "pbs" // examples: eue, ipt, cust, com
+def curlPrefix = "curl -X POST https://hooks.slack.com/services/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 -d "
+def chart = (params.CHART).toString()
+def appVersion = (params.APPVERSION).toString()
+def branch = (params.BRANCH ?: "master").toString()
+def slackUserScript = "git log -1 --pretty=format:'%aE' | sed -e 's/@.*//'"
+def eueCTFNotifySlack = new eueCTFNotifySlack()
+//def namespaces = ["ttzo"]
+def mURL = "https://chartmuseum-dtzo-i-pla-muse-kops1.service.ops.iptho.co.uk"
+def uiTestCount = (params.UITESTS ?: 0).toInteger()
+def apiTestCount = (params.APITESTS ?: 0).toInteger()
+def perfTestCount = (params.PERFTESTS ?: 0).toInteger()
+
+String newVersion
+
+node('basic_slave') {
+    try {
+
+
+        stage("Update Chart.yaml") {
+            checkout scm
+            sh "git checkout ${branch}"
+
+            dir("charts/${chart}") {
+                // Update the chart dockerTag and bump version
+                def Map values = readYaml file: "Chart.yaml"
+
+                if (appVersion) {
+                    // Update the ap venison inside the yaml obj
+                    values['appVersion'] = appVersion
+                }
+
+                version = values['version']
+
+                // Create new version from old
+                int major = version.tokenize('.')[0].toInteger()
+                int minor = version.tokenize('.')[1].toInteger()
+                int patch = version.tokenize('.')[2].toInteger()
+                patch++
+
+                newVersion = "${major}.${minor}.${patch}"
+
+                // Update the chart venison inside the yaml obj
+                values['version'] = newVersion
+
+                // Delete old file and create new file with new data
+                sh(script: "rm Chart.yaml")
+                writeYaml file: "Chart.yaml", data: values
+            }
+        }
+
+        stage("Update value.yaml") {
+            dir("charts/${chart}") {
+                def totalTests = uiTestCount + apiTestCount + perfTestCount
+                def Map chartValues = readYaml file: "values.yaml"
+                chartValues["global"]["batches"]["suites"]["TestSuiteUi"] = uiTestCount
+                chartValues["global"]["batches"]["suites"]["TestSuiteApi"] = apiTestCount
+                chartValues["global"]["batches"]["suites"]["TestSuitePerf"] = perfTestCount
+                chartValues["global"]["batches"]["total"] = totalTests
+                // Delete old file and create new file with new data
+                sh(script: "rm values.yaml")
+                writeYaml file: "values.yaml", data: chartValues
+            }
+        }
+
+        // Push changes and get GitHash
+        stage("Push to repo") {
+            sh "git config user.email '${domain}-jenkins@core.xyz'"
+            sh "git config user.name 'CTF Jenkins'"
+            sh "git commit -am '${env.JOB_NAME}:${env.BUILD_ID}'"
+            sh "git push"
+        }
+
+        stage("Package chart..") {
+            dir("charts/${chart}") {
+                sh "helm init --client-only"
+                sh "mkdir -p ../../${domain}/${chart}/"
+                sh "helm package . -d ../../${domain}/${chart}/ --version ${newVersion}"
+            }
+        }
+
+        stage("Push to ChartMuseum..") {
+            dir("${domain}/${chart}") {
+                sh "curl -s --data-binary '@${chart}-${newVersion}.tgz' ${mURL}/api/${domain}/${chart}/charts"
+            }
+        }
+
+        stage("Post success to slack") {
+            slackUser = sh(script: slackUserScript, returnStdout: true)
+            eueCTFNotifySlack.postToSlack(true, slackUser, curlPrefix)
+        }
+    } catch (Exception e) {
+        slackUser = sh(script: slackUserScript, returnStdout: true)
+        eueCTFNotifySlack.postToSlack(false, slackUser, curlPrefix)
+        throw e
+        sh "exit 1"
+    }
+}

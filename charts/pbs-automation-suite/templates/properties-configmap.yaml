@@ -1,0 +1,35 @@
+kind: ConfigMap
+metadata:
+  name: {{.Chart.Name}}-{{.Values.global.targetNamespace}}-{{lower .Values.global.branch}}-properties
+  labels:
+    name: {{.Chart.Name}}
+    chart: {{.Chart.Name}}-{{.Chart.Version}}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    service: {{.Chart.Name}}
+    costcentre: PBS
+apiVersion: v1
+data:
+  {{.Chart.Name}}.properties: |-
+    #General    
+    webdriver.browser={{.Values.global.browser}}
+
+    #JMETER
+    jmeter.jmx.endpoint={{.Values.global.jmeter.endpoint}}
+    jmeter.jmx.location={{.Values.global.jmeter.location}}
+    jmeter.home={{.Values.global.jmeter.home}}
+    jmeter.report.location={{.Values.global.jmeter.reports}}
+
+    #eue-applications
+    eue-applications-api.endpoint={{.Values.global.uri.eue_app_api.endpoint}}
+    eue-applications-api.healthcheck={{.Values.global.uri.eue_app_api.healthcheck}}
+
+    #communication-tool
+    mobile.email.queue.endpoint={{.Values.global.uri.communication_tool.endpoint}}
+
+    #pbs properties
+    pbs.SponsorHome.url={{.Values.global.pbs.sponsor.portal}}
+    pbs.SMS.url={{.Values.global.pbs.sms.portal}}
+    pbs.COSCAS.url={{.Values.global.pbs.coscas.portal}}
+    pbs.Metastorm.url={{.Values.global.pbs.metastorm.portal}}
+    pbs.metastormAPI.endpoint={{.Values.global.pbs.metastormAPI.endpoint}}

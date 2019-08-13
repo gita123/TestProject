@@ -1,0 +1,8 @@
+{{- $global := . -}}
+{{- range $batchNumber, $e := until (int .Values.global.batches.total) }}
+  {{- $batchNumber := add $batchNumber 1 -}}
+  {{- $batchName :=  printf "Parallel%03dIT" $batchNumber }}
+  {{ $_ := set $global "batchName" $batchName }}
+  {{ $_ := set $global "batchNumber" $batchNumber }}
+  {{- include "test-batches" $global }}
+{{- end }}

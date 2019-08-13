@@ -1,0 +1,162 @@
+#!groovy���
+
+import org.eue.core.SemVer
+// we will see
+
+def domain = "pbs" // examples: eue, ipt, cust, com
+def curlPrefix = "curl -X POST https://hooks.slack.com/services/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 -d "
+def namespace = (params.NAMESPACE ?: "ttzo").toString()
+def chart = (params.CHART).toString()
+
+def testTags = (params.TEST_TAGS).toString()
+def autoPromote = (params.AUTO_PROMOTE).toString()
+def branch = (params.BRANCH).toString()
+def sanitisedBranch = branch.replace('/', "-").toLowerCase()
+
+// Testframework uses non-namespace values file, others should default to namespace
+def target = (params.TARGET ?: "asit").toString()
+def cluster = (params.CLUSTER ?: "ops-kops1").toString()
+def slackUserScript = "git log -1 --pretty=format:'%aE' | sed -e 's/@.*//'"
+def eueCTFNotifySlack = new eueCTFNotifySlack()
+def chartReleaseName = "${chart}-${target}-${sanitisedBranch}"
+
+// ChartMuseum
+def mURL = "https://chartmuseum-dtzo-i-pla-muse-kops1.service.ops.iptho.co.uk"
+
+// Version
+def parsed_version = (params.VERSION ?: "latest").toString()
+
+// Build numbers
+def jobName = env.JOB_NAME
+def buildID = env.BUILD_ID
+
+pipeline {
+    agent { label 'basic_slave' }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    // Start of Stages
+    stages {
+
+        stage("Get chart from Chart Museum") {
+            steps {
+                script {
+
+                    echo " --------- Step: Checkout SCM --------- "
+                    checkout scm
+                    sh "git checkout ${branch}"
+
+                    echo " ------ Step: Fetch chart - ${parsed_version} ------ "
+                    sh "helm init --client-only"
+                    // Add the chart museum repo
+                    sh "helm repo add latest ${mURL}/${domain}/${chart}"
+                    sh "helm repo update"
+                    // add if for latest parsed
+                    sh "helm fetch latest/${chart} --version ${parsed_version}"
+                    // Check chart_version
+                    chart_version = sh(returnStdout: true, script: 'helm search latest/${chart} | awk \'{print $2}\' | awk \'NR==2\'').trim()
+
+                    // Unpack the package
+                    echo " ------ Step: Unpack chart - ${chart_version} ------ "
+                    sh "tar -xvf ${chart}-${version}.tgz -C /tmp"
+                }
+            }
+        }
+
+        stage("Deploy chart") {
+            steps {
+                script {
+
+                    sh "kubectl config use-context ${cluster}"
+                    sh "helm init --client-only"
+
+                    // Read cert and key
+                    sh "vault read -field crt secret/jenkins/tiller > /var/jenkins_home/.helm/cert.pem"
+                    sh "vault read -field key secret/jenkins/tiller > /var/jenkins_home/.helm/key.pem"
+
+                    try {
+                        // If there is an old release it must be deleted before new install/upgrade
+                        echo " ------ Step: Delete old release ------ "
+                        release = sh(returnStdout: true, script: "helm list --tiller-namespace tiller --tls --namespace ${namespace} ${chartReleaseName} -q ")
+
+                        echo "${release}"
+
+                        if (release) {
+                            // Try delete..
+                            sh "helm delete ${chartReleaseName} --purge --tiller-namespace tiller --tls"
+                            podCount = sh(returnStdout: true, script: "kubectl get pod --namespace ${namespace} | grep \"${chartReleaseName}-branch\" | wc -l")
+                            println("Pod count is ${podCount}")
+                            println("Waiting for release to be deleted.")
+                            sleep(time: 15, unit: "SECONDS")
+                            sleepCount = 1
+                            while (podCount.toInteger() > 0) {
+                                podCount = sh(returnStdout: true, script: "kubectl get pod --namespace ${namespace} | grep \"${chartReleaseName}-branch\" | wc -l")
+                                println("Pod count is ${podCount}")
+                                sleep(time: 15, unit: "SECONDS")
+                                sleepCount = sleepCount + 1
+                                if (sleepCount > 20) {
+                                    println("Unable to cleardown the release after ${sleepCount} wait cycles.")
+                                    sh "exit 1"
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        println "Did not delete the previous failed release. Exception: ${e}"
+                        sh "exit 1"
+                    }
+
+                    // Get the timestamp
+                    def timestamp = sh(returnStdout: true, script: "date +%Y-%m-%d_%H-%M-%S").trim()
+
+                    // Parse the ops-kops1 kube token
+                    def kubeYaml = readYaml file: "/var/jenkins_home/.kube/config"
+                    def kubeToken = kubeYaml.users.find { it.name.equalsIgnoreCase("ops-kops1") }.user.token.toString()
+
+                    // Default value
+                    def valuesFileExists = true
+                    try {
+                        sh "ls /tmp/${chart}/${target}-values.yaml"
+                    } catch (Exception e) {
+                        valuesFileExists = false
+                    }
+                    println(valuesFileExists)
+
+                    try {
+                        if (valuesFileExists) {
+                        echo " -------- Step: Deploy release -------- "
+
+                            sh "helm upgrade --install ${chartReleaseName} /tmp/${chart} --tiller-namespace tiller \
+                        --tls \
+                        --namespace ${namespace} \
+                        -f /tmp/${chart}/${target}-values.yaml \
+                        --set global.testTags=\"${testTags}\",global.branch=\"${sanitisedBranch}-branch\",global.timestamp=\"${timestamp}\",global.kubeOpsToken=\"${kubeToken}\" \
+                        --set global.jenkinsUmbrellaVersion=${version} \
+                        --force \
+                        --wait --timeout 300"
+                        } else {
+                            println "*** NO VALUE FILE PROVIDED ***"
+
+                            sh "helm upgrade --install ${chartReleaseName} /tmp/${chart} --tiller-namespace tiller \
+                        --tls \
+                        --namespace ${namespace} \
+                        --set global.testTags=\"${testTags}\",global.branch=\"${sanitisedBranch}-branch\",global.timestamp=\"${timestamp}\",global.kubeOpsToken=\"${kubeToken}\" \
+                        --set global.jenkinsUmbrellaVersion=${version} \
+                        --force \
+                        --wait --timeout 300"
+                        }
+                    } catch (Exception e) {
+                          slackUser = sh(script: slackUserScript, returnStdout: true)
+                          eueCTFNotifySlack.postToSlack(false, slackUser, curlPrefix, branch)
+                        sh "exit 1"
+                    }
+                        slackUser = sh(script: slackUserScript, returnStdout: true)
+                        eueCTFNotifySlack.postToSlack(true, slackUser, curlPrefix, branch)
+
+
+                   }
+                }
+            }
+        }
+    } // End of pipeline
+
